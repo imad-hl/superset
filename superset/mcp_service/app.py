@@ -58,6 +58,8 @@ Dashboard Management:
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID
+- create_dataset: Create a new dataset (physical table or virtual SQL-based)
+- get_dataset_available_filters: List available dataset filter fields/operators
 - get_dataset_available_filters: List available dataset filter fields/operators
 
 Chart Management:
@@ -304,7 +306,11 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     get_dashboard_info,
     list_dashboards,
 )
+from superset.mcp_service.database.tool import (  # noqa: F401, E402
+    list_databases,
+)
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
+    create_dataset,
     get_dataset_available_filters,
     get_dataset_info,
     list_datasets,

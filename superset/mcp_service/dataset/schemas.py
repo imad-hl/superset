@@ -302,6 +302,120 @@ class GetDatasetInfoRequest(MetadataCacheControl):
     ]
 
 
+class CreateDatasetRequest(BaseModel):
+    """Request schema for create_dataset tool."""
+
+    database_id: Annotated[
+        int | None,
+        Field(
+            default=None,
+            description="ID of the database (numeric). Use either database_id OR "
+            "database_name, not both",
+        ),
+    ]
+    database_name: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Name of the database (e.g., 'PostgreSQL Production'). Use "
+            "either database_id OR database_name, not both",
+        ),
+    ]
+    table_name: Annotated[
+        str,
+        Field(description="Name of the table (for physical) or dataset name (for SQL)"),
+    ]
+    schema_name: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Schema name where the table exists. Required for physical "
+            "tables, optional for SQL-based datasets",
+            alias="schema",
+        ),
+    ]
+    sql: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="SQL query for virtual/SQL-based datasets. If provided, "
+            "creates a virtual dataset. Leave empty for physical tables",
+        ),
+    ]
+    catalog: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Catalog name (optional, uses database default if not provided)",
+        ),
+    ]
+    description: Annotated[
+        str | None,
+        Field(default=None, description="Description of the dataset (optional)"),
+    ]
+    owner_ids: Annotated[
+        List[int] | None,
+        Field(
+            default=None,
+            description="List of owner user IDs (optional, defaults to current user)",
+        ),
+    ]
+    fetch_metadata: Annotated[
+        bool,
+        Field(
+            default=True,
+            description="Whether to automatically fetch column and metric metadata "
+            "after creation",
+        ),
+    ]
+
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True,
+        populate_by_name=True,  # Allow both 'schema' (alias) and 'schema_name' (field)
+    )
+
+    @model_validator(mode="after")
+    def validate_database_identifier(self) -> "CreateDatasetRequest":
+        """Validate that exactly one database identifier is provided."""
+        if not self.database_id and not self.database_name:
+            raise ValueError(
+                "Must provide either 'database_id' (numeric ID) or 'database_name' "
+                "(database name)."
+            )
+        if self.database_id and self.database_name:
+            raise ValueError(
+                "Cannot provide both 'database_id' and 'database_name'. Use one or the other."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_physical_or_virtual(self) -> "CreateDatasetRequest":
+        """Validate that physical tables have schema specified."""
+        if not self.sql and not self.schema_name:
+            raise ValueError(
+                "For physical tables (no SQL), 'schema' is required. "
+                "For virtual datasets, provide 'sql' query."
+            )
+        return self
+
+
+class CreateDatasetResponse(BaseModel):
+    """Response schema for create_dataset tool."""
+
+    success: bool = Field(..., description="Whether the dataset was created successfully")
+    dataset: DatasetInfo | None = Field(
+        None, description="The created dataset information"
+    )
+    message: str = Field(..., description="Success or error message")
+    error: str | None = Field(None, description="Error details if creation failed")
+    validation_errors: List[str] = Field(
+        default_factory=list, description="List of validation errors if any"
+    )
+
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+
 def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     if not dataset:
         return None
