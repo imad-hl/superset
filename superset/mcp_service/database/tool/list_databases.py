@@ -74,9 +74,8 @@ async def list_databases(
     try:
         await ctx.info("Fetching all database connections from Superset")
 
-        # Get all database connections (skip_base_filter=True to bypass RBAC)
-        # MCP tools run with admin context, so we want to see all databases
-        databases = DatabaseDAO.find_all(skip_base_filter=True)
+        # Get all database connections
+        databases = DatabaseDAO.find_all()
 
         # Convert to response format - access all attributes while objects are still
         # attached to the session to avoid DetachedInstanceError
